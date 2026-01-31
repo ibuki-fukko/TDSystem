@@ -132,14 +132,14 @@ const handleCancel = async (application) => {
     )
     
     // 模拟API调用
-    setTimeout(() => {
-      // 更新申请状态
-      const app = applicationList.value.find(item => item.id === application.id)
-      if (app) {
-        app.status = 'cancelled'
-      }
-      ElMessage.success('申请已取消')
-    }, 500)
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    // 更新申请状态
+    const app = applicationList.value.find(item => item.id === application.id)
+    if (app) {
+      app.status = 'cancelled'
+    }
+    ElMessage.success('申请已取消')
   } catch (error) {
     // 用户点击取消，不做任何操作
   }
