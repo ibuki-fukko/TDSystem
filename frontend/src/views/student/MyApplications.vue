@@ -17,7 +17,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150">
+        <el-table-column label="操作" width="200">
           <template #default="scope">
             <el-button
               type="primary"
@@ -33,6 +33,14 @@
               @click="handleEdit(scope.row)"
             >
               编辑
+            </el-button>
+            <el-button
+              v-if="scope.row.status === 'pending'"
+              type="danger"
+              size="small"
+              @click="handleCancel(scope.row)"
+            >
+              取消报名
             </el-button>
           </template>
         </el-table-column>
@@ -50,7 +58,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
 
@@ -79,7 +87,8 @@ const getStatusType = (status) => {
   const statusMap = {
     pending: 'warning',
     approved: 'success',
-    rejected: 'danger'
+    rejected: 'danger',
+    cancelled: 'info'
   }
   return statusMap[status] || 'info'
 }
@@ -89,7 +98,8 @@ const getStatusLabel = (status) => {
   const statusMap = {
     pending: '待审核',
     approved: '已通过',
-    rejected: '已驳回'
+    rejected: '已驳回',
+    cancelled: '已取消'
   }
   return statusMap[status] || '未知'
 }
@@ -106,6 +116,33 @@ const handleEdit = (application) => {
   ElMessage.info(`编辑申请 #${application.id}`)
   // 实际项目中这里会跳转到编辑页面
   // router.push(`/student/application/edit/${application.id}`)
+}
+
+// 取消申请
+const handleCancel = async (application) => {
+  try {
+    await ElMessageBox.confirm(
+      'Are you sure you want to cancel this application?',
+      '确认取消',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    // 模拟API调用
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    // 更新申请状态
+    const app = applicationList.value.find(item => item.id === application.id)
+    if (app) {
+      app.status = 'cancelled'
+    }
+    ElMessage.success('申请已取消')
+  } catch (error) {
+    // 用户点击取消，不做任何操作
+  }
 }
 
 // 前往批次列表
