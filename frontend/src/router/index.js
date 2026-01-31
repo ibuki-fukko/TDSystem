@@ -66,6 +66,18 @@ const routes = [
         name: 'StudentBatch',
         component: () => import('../views/student/BatchList.vue'),
         meta: { title: '可报名批次列表' }
+      },
+      {
+        path: '/student/application',
+        name: 'StudentApplication',
+        component: () => import('../views/student/ApplicationForm.vue'),
+        meta: { title: '答辩申请' }
+      },
+      {
+        path: '/student/my-applications',
+        name: 'StudentMyApplications',
+        component: () => import('../views/student/MyApplications.vue'),
+        meta: { title: '我的申请' }
       }
     ]
   },

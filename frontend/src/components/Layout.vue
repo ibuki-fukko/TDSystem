@@ -140,6 +140,10 @@ const generateMenuByRole = (role) => {
             {
               path: '/student/batch',
               label: '可报名批次列表'
+            },
+            {
+              path: '/student/my-applications',
+              label: '我的申请'
             }
             // 其他学生页面将在后续开发中添加
           ]
