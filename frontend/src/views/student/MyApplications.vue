@@ -3,12 +3,12 @@
     <h2>我的申请</h2>
     <el-card>
       <el-table :data="applicationList" style="width: 100%">
-        <el-table-column prop="id" label="申请ID" width="100" />
-        <el-table-column prop="batchName" label="批次名称" width="200" />
-        <el-table-column prop="thesisTitle" label="论文标题" min-width="250" />
-        <el-table-column prop="supervisor" label="指导教师" width="120" />
-        <el-table-column prop="submissionTime" label="提交时间" width="180" />
-        <el-table-column prop="status" label="状态" width="120">
+        <el-table-column prop="id" label="申请ID" width="80" />
+        <el-table-column prop="batchName" label="批次名称" width="150" show-overflow-tooltip />
+        <el-table-column prop="thesisTitle" label="论文标题" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="supervisor" label="指导教师" width="100" show-overflow-tooltip />
+        <el-table-column prop="submissionTime" label="提交时间" width="160" />
+        <el-table-column prop="status" label="状态" width="100">
           <template #default="scope">
             <el-tag
               :type="getStatusType(scope.row.status)"
@@ -17,31 +17,33 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200">
+        <el-table-column label="操作" width="260" fixed="right">
           <template #default="scope">
-            <el-button
-              type="primary"
-              size="small"
-              @click="handleView(scope.row)"
-            >
-              查看
-            </el-button>
-            <el-button
-              v-if="scope.row.status === 'pending'"
-              type="warning"
-              size="small"
-              @click="handleEdit(scope.row)"
-            >
-              编辑
-            </el-button>
-            <el-button
-              v-if="scope.row.status === 'pending'"
-              type="danger"
-              size="small"
-              @click="handleCancel(scope.row)"
-            >
-              取消报名
-            </el-button>
+            <div style="display: flex; gap: 5px; flex-wrap: nowrap;">
+              <el-button
+                type="primary"
+                size="small"
+                @click="handleView(scope.row)"
+              >
+                查看
+              </el-button>
+              <el-button
+                v-if="scope.row.status === 'pending'"
+                type="warning"
+                size="small"
+                @click="handleEdit(scope.row)"
+              >
+                编辑
+              </el-button>
+              <el-button
+                v-if="scope.row.status === 'pending'"
+                type="danger"
+                size="small"
+                @click="handleCancel(scope.row)"
+              >
+                取消报名
+              </el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
