@@ -97,16 +97,13 @@ const route = useRoute()
 const formRef = ref(null)
 const submitting = ref(false)
 
-// 从查询参数获取批次ID
 const batchId = ref(route.query.batchId || '')
-// 获取应用ID和模式
 const applicationId = ref(route.query.id || '')
 const mode = ref(route.query.mode || 'create') // 'create', 'view', or 'edit'
 const isViewMode = computed(() => mode.value === 'view')
 const isEditMode = computed(() => mode.value === 'edit')
 const isCreateMode = computed(() => mode.value === 'create')
 
-// 模拟教师列表
 const teacherList = ref([
   { id: 1, name: '张教授' },
   { id: 2, name: '李教授' },
@@ -115,7 +112,6 @@ const teacherList = ref([
   { id: 5, name: '陈副教授' }
 ])
 
-// 表单数据
 const formData = reactive({
   studentName: 'Student 1',
   studentId: '2024001',
@@ -126,7 +122,6 @@ const formData = reactive({
   supervisor: ''
 })
 
-// 表单验证规则
 const rules = {
   thesisTitle: [
     { required: true, message: '请输入论文标题', trigger: 'blur' }
@@ -143,7 +138,6 @@ const rules = {
   ]
 }
 
-// 提交表单
 const handleSubmit = async () => {
   if (!formRef.value) return
   
@@ -160,8 +154,7 @@ const handleSubmit = async () => {
       } else {
         ElMessage.success('申请提交成功！')
       }
-      
-      // 跳转到我的申请页面
+
       router.push('/student/my-applications')
     }, 1500)
   } catch (error) {
@@ -169,7 +162,6 @@ const handleSubmit = async () => {
   }
 }
 
-// 取消操作
 const handleCancel = () => {
   if (isViewMode.value || isEditMode.value) {
     router.push('/student/my-applications')
@@ -179,14 +171,12 @@ const handleCancel = () => {
 }
 
 onMounted(() => {
-  // 检查是否有批次ID（仅在创建模式下需要）
   if (isCreateMode.value && !batchId.value) {
     ElMessage.warning('未指定批次ID，请从批次列表选择')
     router.push('/student/batch')
     return
   }
-  
-  // 如果是查看或编辑模式，加载现有申请数据
+
   if ((isViewMode.value || isEditMode.value) && applicationId.value) {
     loadApplicationData(applicationId.value)
   }

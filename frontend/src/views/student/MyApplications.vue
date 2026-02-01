@@ -64,7 +64,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
 
-// 申请列表
 const applicationList = ref([
   {
     id: 1001,
@@ -84,7 +83,6 @@ const applicationList = ref([
   }
 ])
 
-// 获取状态标签类型
 const getStatusType = (status) => {
   const statusMap = {
     pending: 'warning',
@@ -95,7 +93,6 @@ const getStatusType = (status) => {
   return statusMap[status] || 'info'
 }
 
-// 获取状态标签文本
 const getStatusLabel = (status) => {
   const statusMap = {
     pending: '待审核',
@@ -106,21 +103,18 @@ const getStatusLabel = (status) => {
   return statusMap[status] || '未知'
 }
 
-// 查看申请详情
 const handleView = (application) => {
   router.push(`/student/application?id=${application.id}&mode=view`)
 }
 
-// 编辑申请
 const handleEdit = (application) => {
   router.push(`/student/application?id=${application.id}&mode=edit`)
 }
 
-// 取消申请
 const handleCancel = async (application) => {
   try {
     await ElMessageBox.confirm(
-      'Are you sure you want to cancel this application?',
+      '你确定要取消本次申请吗?',
       '确认取消',
       {
         confirmButtonText: '确定',
@@ -143,7 +137,6 @@ const handleCancel = async (application) => {
   }
 }
 
-// 前往批次列表
 const handleGoToBatchList = () => {
   router.push('/student/batch')
 }

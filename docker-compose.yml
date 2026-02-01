@@ -1,10 +1,10 @@
-version: '3.8'
+#version: '3.8'
 
 services:
   mysql:
-    image: mysql:8.0.36
+    image: mysql:8.0
     ports:
-      - "3306:3306"
+      - "3307:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=123456
       - MYSQL_DATABASE=thesis_defense_system
@@ -18,7 +18,7 @@ services:
     command: redis-server --requirepass ""
 
   nginx:
-    image: nginx:1.28-alpine
+    image: nginx:1.27-alpine
     ports:
       - "80:80"
     volumes:
