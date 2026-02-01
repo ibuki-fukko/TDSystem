@@ -106,16 +106,12 @@ const getStatusLabel = (status) => {
 
 // 查看申请详情
 const handleView = (application) => {
-  ElMessage.info(`查看申请 #${application.id}`)
-  // 实际项目中这里会跳转到详情页面
-  // router.push(`/student/application/${application.id}`)
+  router.push(`/student/application?id=${application.id}&mode=view`)
 }
 
 // 编辑申请
 const handleEdit = (application) => {
-  ElMessage.info(`编辑申请 #${application.id}`)
-  // 实际项目中这里会跳转到编辑页面
-  // router.push(`/student/application/edit/${application.id}`)
+  router.push(`/student/application?id=${application.id}&mode=edit`)
 }
 
 // 取消申请

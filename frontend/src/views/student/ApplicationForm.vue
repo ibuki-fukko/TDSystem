@@ -1,6 +1,6 @@
 <template>
   <div class="application-form-container">
-    <h2>答辩申请</h2>
+    <h2>{{ isViewMode ? '查看申请' : isEditMode ? '编辑申请' : '答辩申请' }}</h2>
     <el-card>
       <el-form
         ref="formRef"
@@ -25,6 +25,7 @@
           <el-input
             v-model="formData.thesisTitle"
             placeholder="请输入论文中文标题"
+            :disabled="isViewMode"
           />
         </el-form-item>
 
@@ -32,6 +33,7 @@
           <el-input
             v-model="formData.englishTitle"
             placeholder="请输入论文英文标题（选填）"
+            :disabled="isViewMode"
           />
         </el-form-item>
 
@@ -39,6 +41,7 @@
           <el-input
             v-model="formData.keywords"
             placeholder="请输入关键词，多个关键词用逗号分隔"
+            :disabled="isViewMode"
           />
         </el-form-item>
 
@@ -48,6 +51,7 @@
             type="textarea"
             :rows="6"
             placeholder="请输入论文摘要"
+            :disabled="isViewMode"
           />
         </el-form-item>
 
@@ -56,6 +60,7 @@
             v-model="formData.supervisor"
             placeholder="请选择指导教师"
             style="width: 100%"
+            :disabled="isViewMode"
           >
             <el-option
               v-for="teacher in teacherList"
@@ -67,10 +72,15 @@
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" @click="handleSubmit" :loading="submitting">
-            提交申请
+          <el-button 
+            v-if="!isViewMode" 
+            type="primary" 
+            @click="handleSubmit" 
+            :loading="submitting"
+          >
+            {{ isEditMode ? '更新申请' : '提交申请' }}
           </el-button>
-          <el-button @click="handleCancel">取消</el-button>
+          <el-button @click="handleCancel">{{ isViewMode ? '返回' : '取消' }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -89,6 +99,12 @@ const submitting = ref(false)
 
 // 从查询参数获取批次ID
 const batchId = ref(route.query.batchId || '')
+// 获取应用ID和模式
+const applicationId = ref(route.query.id || '')
+const mode = ref(route.query.mode || 'create') // 'create', 'view', or 'edit'
+const isViewMode = ref(mode.value === 'view')
+const isEditMode = ref(mode.value === 'edit')
+const isCreateMode = ref(mode.value === 'create')
 
 // 模拟教师列表
 const teacherList = ref([
@@ -139,7 +155,11 @@ const handleSubmit = async () => {
     // 模拟API调用
     setTimeout(() => {
       submitting.value = false
-      ElMessage.success('申请提交成功！')
+      if (isEditMode.value) {
+        ElMessage.success('申请更新成功！')
+      } else {
+        ElMessage.success('申请提交成功！')
+      }
       
       // 跳转到我的申请页面
       router.push('/student/my-applications')
@@ -151,16 +171,65 @@ const handleSubmit = async () => {
 
 // 取消操作
 const handleCancel = () => {
-  router.push('/student/batch')
+  if (isViewMode.value || isEditMode.value) {
+    router.push('/student/my-applications')
+  } else {
+    router.push('/student/batch')
+  }
 }
 
 onMounted(() => {
-  // 检查是否有批次ID
-  if (!batchId.value) {
+  // 检查是否有批次ID（仅在创建模式下需要）
+  if (isCreateMode.value && !batchId.value) {
     ElMessage.warning('未指定批次ID，请从批次列表选择')
     router.push('/student/batch')
+    return
+  }
+  
+  // 如果是查看或编辑模式，加载现有申请数据
+  if ((isViewMode.value || isEditMode.value) && applicationId.value) {
+    loadApplicationData(applicationId.value)
   }
 })
+
+// 加载申请数据（模拟API调用）
+const loadApplicationData = (id) => {
+  // 模拟从后端获取数据
+  const mockData = {
+    1001: {
+      batchId: '2026-spring',
+      studentName: 'Student 1',
+      studentId: '2024001',
+      thesisTitle: '基于深度学习的图像识别系统研究与实现',
+      englishTitle: 'Research and Implementation of Image Recognition System Based on Deep Learning',
+      keywords: '深度学习,图像识别,卷积神经网络,计算机视觉',
+      abstract: '本文研究了基于深度学习的图像识别系统，采用卷积神经网络架构，实现了高精度的图像分类与识别功能。系统能够自动提取图像特征，通过多层神经网络进行特征学习和分类决策。实验结果表明，该系统在多个标准数据集上取得了优异的性能表现。',
+      supervisor: 1
+    },
+    1002: {
+      batchId: '2025-autumn',
+      studentName: 'Student 1',
+      studentId: '2024001',
+      thesisTitle: '分布式系统中的一致性协议研究',
+      englishTitle: 'Research on Consistency Protocols in Distributed Systems',
+      keywords: '分布式系统,一致性协议,Raft算法,共识机制',
+      abstract: '本文深入研究了分布式系统中的一致性协议，重点分析了Raft共识算法的原理和实现。通过理论分析和实验验证，证明了该协议在保证数据一致性方面的有效性。本研究为构建高可用的分布式系统提供了理论基础和实践指导。',
+      supervisor: 2
+    }
+  }
+  
+  const data = mockData[id]
+  if (data) {
+    batchId.value = data.batchId
+    formData.studentName = data.studentName
+    formData.studentId = data.studentId
+    formData.thesisTitle = data.thesisTitle
+    formData.englishTitle = data.englishTitle
+    formData.keywords = data.keywords
+    formData.abstract = data.abstract
+    formData.supervisor = data.supervisor
+  }
+}
 </script>
 
 <style scoped>
