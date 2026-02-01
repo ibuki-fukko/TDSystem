@@ -88,7 +88,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 
@@ -102,9 +102,9 @@ const batchId = ref(route.query.batchId || '')
 // 获取应用ID和模式
 const applicationId = ref(route.query.id || '')
 const mode = ref(route.query.mode || 'create') // 'create', 'view', or 'edit'
-const isViewMode = ref(mode.value === 'view')
-const isEditMode = ref(mode.value === 'edit')
-const isCreateMode = ref(mode.value === 'create')
+const isViewMode = computed(() => mode.value === 'view')
+const isEditMode = computed(() => mode.value === 'edit')
+const isCreateMode = computed(() => mode.value === 'create')
 
 // 模拟教师列表
 const teacherList = ref([
@@ -218,7 +218,8 @@ const loadApplicationData = (id) => {
     }
   }
   
-  const data = mockData[id]
+  // Convert id to number for lookup
+  const data = mockData[Number(id)]
   if (data) {
     batchId.value = data.batchId
     formData.studentName = data.studentName
