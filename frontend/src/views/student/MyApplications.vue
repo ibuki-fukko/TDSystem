@@ -19,7 +19,7 @@
         </el-table-column>
         <el-table-column label="操作" width="260" fixed="right">
           <template #default="scope">
-            <div style="display: flex; gap: 5px; flex-wrap: nowrap;">
+            <div class="action-buttons">
               <el-button
                 type="primary"
                 size="small"
@@ -170,5 +170,11 @@ h2 {
 .empty-state {
   padding: 40px 0;
   text-align: center;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 5px;
+  flex-wrap: nowrap;
 }
 </style>
