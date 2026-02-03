@@ -1,8 +1,27 @@
 <template>
   <div class="batch-list-container">
     <h2>可报名批次列表</h2>
+    
+    <div class="filter-area">
+      <el-input
+        v-model="searchKeyword"
+        placeholder="搜索批次名称"
+        clearable
+        style="width: 200px; margin-right: 10px;"
+      />
+      <el-select
+        v-model="filterStatus"
+        placeholder="筛选状态"
+        clearable
+        style="width: 120px;"
+      >
+        <el-option label="开放报名" value="open" />
+        <el-option label="已关闭" value="closed" />
+      </el-select>
+    </div>
+    
     <el-card>
-      <el-table :data="batchList" style="width: 100%">
+      <el-table :data="filteredBatches" style="width: 100%">
         <el-table-column prop="id" label="批次ID" width="80" />
         <el-table-column prop="name" label="批次名称" />
         <el-table-column prop="startDate" label="报名开始日期" />
@@ -32,9 +51,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const batchList = ref([
@@ -57,17 +75,22 @@ const batchList = ref([
     status: 'closed'
   }
 ])
+const searchKeyword = ref('')
+const filterStatus = ref('')
+const filteredBatches = computed(() => {
+  return batchList.value.filter(batch => {
+    // 按批次名称筛选
+    const keywordMatch = batch.name.includes(searchKeyword.value)
+    // 按状态筛选
+    const statusMatch = !filterStatus.value || batch.status === filterStatus.value
+    
+    return keywordMatch && statusMatch
+  })
+})
 
 const handleApply = (batch) => {
   router.push(`/student/application?batchId=${batch.id}`)
 }
-
-onMounted(() => {
-  // 模拟从后端获取批次列表
-  setTimeout(() => {
-    // 实际项目中这里会调用API获取真实数据
-  }, 500)
-})
 </script>
 
 <style scoped>
@@ -78,6 +101,9 @@ onMounted(() => {
 h2 {
   font-size: 18px;
   color: #1e3c72;
+  margin-bottom: 20px;
+}
+.filter-area {
   margin-bottom: 20px;
 }
 </style>
