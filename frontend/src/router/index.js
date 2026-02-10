@@ -78,6 +78,18 @@ const routes = [
         name: 'StudentMyApplications',
         component: () => import('../views/student/MyApplications.vue'),
         meta: { title: '我的申请' }
+      },
+      {
+        path: '/student/upload',
+        name: 'StudentThesisUpload',
+        component: () => import('../views/student/ThesisUpload.vue'),
+        meta: { title: '论文上传' }
+      },
+      {
+        path: '/student/list',
+        name: 'StudentThesisList',
+        component: () => import('../views/student/ThesisList.vue'),
+        meta: { title: '我的论文' }
       }
     ]
   },
