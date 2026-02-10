@@ -68,11 +68,7 @@
         
         <!-- 内容区域 -->
         <div class="content-wrapper">
-          <router-view v-slot="{ Component }">
-            <transition name="fade" mode="out-in">
-              <component :is="Component" />
-            </transition>
-          </router-view>
+          <router-view />
         </div>
       </el-main>
     </div>
@@ -121,7 +117,7 @@ const loadUserInfo = () => {
 const generateMenuByRole = (role) => {
   const baseMenu = [
     {
-      path: '/',
+      path: '/home',
       label: '首页',
       icon: House
     }
@@ -224,10 +220,10 @@ const breadcrumbList = ref([])
 
 const generateBreadcrumb = () => {
   const path = route.path
-  const breadcrumbs = [{ label: '首页', path: '/' }]
+  const breadcrumbs = [{ label: '首页', path: '/home' }]
   
   // 简单的面包屑生成逻辑，实际项目中可能需要更复杂的处理
-  if (path !== '/') {
+  if (path !== '/' && path !== '/home') {
     const pathSegments = path.split('/').filter(Boolean)
     let currentPath = ''
     
