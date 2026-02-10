@@ -44,9 +44,14 @@ const routes = [
     component: Layout,
     meta: { requiresAuth: true },
     children: [
-      // 首页
+      // 默认路径重定向到首页
       {
         path: '',
+        redirect: '/home'
+      },
+      // 首页
+      {
+        path: 'home',
         name: 'Home',
         component: () => import('../views/Home.vue'),
         meta: { title: '首页' }
