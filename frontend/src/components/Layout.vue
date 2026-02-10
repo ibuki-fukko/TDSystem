@@ -144,6 +144,14 @@ const generateMenuByRole = (role) => {
             {
               path: '/student/my-applications',
               label: '我的申请'
+            },
+            {
+              path: '/student/upload',
+              label: '论文上传'
+            },
+            {
+              path: '/student/list',
+              label: '我的论文'
             }
             // 其他学生页面将在后续开发中添加
           ]

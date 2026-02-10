@@ -3,21 +3,38 @@
     <h2>论文上传</h2>
     
     <el-card class="upload-card">
-      <template #header>
-        <div class="card-header">
-          <span>上传新论文</span>
-        </div>
-      </template>
-      
       <el-form :model="uploadForm" label-width="120px">
+        <el-form-item label="批次ID">
+          <el-input v-model="batchId" disabled style="width: 200px" />
+        </el-form-item>
+        
+        <el-form-item label="学生学号">
+          <el-input v-model="userInfo.username" disabled style="width: 200px" />
+        </el-form-item>
+
         <el-form-item label="论文类型" required>
           <el-select v-model="uploadForm.type" placeholder="请选择论文类型">
             <el-option label="盲审论文" value="blind" />
-            <el-option label="查重论文" value="check" />
+            <el-option label="查重论文" value="plagiarism" />
             <el-option label="终版论文" value="final" />
           </el-select>
         </el-form-item>
         
+        <el-form-item v-if="uploadForm.type === 'plagiarism'" label="查重率" required>
+          <el-input-number 
+            v-model="uploadForm.plagiarismRate" 
+            :precision="3" 
+            :step="0.001" 
+            :max="1" 
+            placeholder="如 0.056"
+          />
+          <span class="tip-text"> (请输入小数，如 5.6% 填 0.056)</span>
+        </el-form-item>
+        
+        <el-form-item v-if="['blind', 'plagiarism'].includes(uploadForm.type)" label="论文题目" required>
+           <el-input v-model="uploadForm.thesisTitle" placeholder="请确认论文题目" />
+        </el-form-item>
+
         <el-form-item label="文件上传" required>
           <el-upload
             class="upload-demo"
@@ -29,19 +46,8 @@
             v-model:file-list="fileList"
           >
             <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-            <div class="el-upload__text">
-              拖拽文件到此处或 <em>点击上传</em>
-            </div>
-            <template #tip>
-              <div class="el-upload__tip">
-                支持 PDF/Word 格式，文件大小不超过 50MB
-              </div>
-            </template>
+            <div class="el-upload__text">拖拽文件到此处或 <em>点击上传</em></div>
           </el-upload>
-        </el-form-item>
-        
-        <el-form-item v-if="uploadProgress > 0">
-          <el-progress :percentage="uploadProgress" :status="uploadStatus" />
         </el-form-item>
         
         <el-form-item>
@@ -49,124 +55,86 @@
         </el-form-item>
       </el-form>
     </el-card>
-    
-    <el-card class="history-card">
-      <template #header>
-        <div class="card-header">
-          <span>上传记录</span>
-        </div>
-      </template>
-      
-      <el-table :data="uploadHistory" style="width: 100%">
-        <el-table-column prop="fileName" label="文件名" />
-        <el-table-column prop="type" label="类型">
-          <template #default="scope">
-            <el-tag>{{ getTypeName(scope.row.type) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="uploadTime" label="上传时间" />
-        <el-table-column prop="status" label="状态">
-          <template #default="scope">
-            <el-tag :type="scope.row.status === 'success' ? 'success' : 'danger'">
-              {{ scope.row.status === 'success' ? '上传成功' : '上传失败' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { UploadFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { getUserProfile, uploadBlindThesis, uploadPlagiarismThesis, uploadFinalThesis } from '../../api/student'
+
+const route = useRoute()
+const batchId = ref(route.query.batchId ? Number(route.query.batchId) : '')
+const userInfo = ref({ username: '' })
 
 const uploadForm = ref({
-  type: ''
+  type: 'blind',
+  plagiarismRate: 0,
+  thesisTitle: ''
 })
 const fileList = ref([])
 const uploading = ref(false)
-const uploadProgress = ref(0)
-const uploadStatus = ref('')
-const uploadHistory = ref([
-  {
-    fileName: '张三_盲审论文_v1.pdf',
-    type: 'blind',
-    uploadTime: '2026-03-15 14:30:00',
-    status: 'success'
-  }
-])
 
 const handleFileChange = (file) => {
   fileList.value = [file]
 }
 
-const getTypeName = (type) => {
-  const map = {
-    'blind': '盲审论文',
-    'check': '查重论文',
-    'final': '终版论文'
+const loadUserInfo = async () => {
+  try {
+    const data = await getUserProfile()
+    userInfo.value = data
+  } catch (error) {
+    console.error(error)
   }
-  return map[type] || type
 }
 
-const submitUpload = () => {
-  if (!uploadForm.value.type) {
-    ElMessage.warning('请选择论文类型')
-    return
-  }
+const submitUpload = async () => {
   if (fileList.value.length === 0) {
     ElMessage.warning('请选择文件')
     return
   }
-  
+  if (!batchId.value) {
+    ElMessage.error('缺少批次ID')
+    return
+  }
+
   uploading.value = true
-  uploadProgress.value = 0
-  
-  // 模拟上传过程
-  const interval = setInterval(() => {
-    uploadProgress.value += 10
-    if (uploadProgress.value >= 100) {
-      clearInterval(interval)
-      uploading.value = false
-      uploadStatus.value = 'success'
-      ElMessage.success('上传成功')
-      
-      // 添加到记录
-      uploadHistory.value.unshift({
-        fileName: fileList.value[0].name,
-        type: uploadForm.value.type,
-        uploadTime: new Date().toLocaleString(),
-        status: 'success'
-      })
-      
-      // 重置表单
-      fileList.value = []
-      uploadForm.value.type = ''
-      setTimeout(() => {
-        uploadProgress.value = 0
-      }, 2000)
+  const file = fileList.value[0].raw
+  const studentId = userInfo.value.username
+
+  try {
+    const formData = new FormData()
+    formData.append('batchId', batchId.value)
+    formData.append('studentId', studentId)
+    formData.append('file', file)
+
+    if (uploadForm.value.type === 'blind') {
+      formData.append('thesisTitle', uploadForm.value.thesisTitle)
+      await uploadBlindThesis(formData)
+    } else if (uploadForm.value.type === 'plagiarism') {
+      formData.append('plagiarismRate', uploadForm.value.plagiarismRate)
+      await uploadPlagiarismThesis(formData)
+    } else if (uploadForm.value.type === 'final') {
+      await uploadFinalThesis(formData)
     }
-  }, 200)
+    
+    ElMessage.success('上传成功')
+    fileList.value = [] // 清空文件
+  } catch (error) {
+    console.error(error)
+  } finally {
+    uploading.value = false
+  }
 }
+
+onMounted(() => {
+  loadUserInfo()
+})
 </script>
 
 <style scoped>
-.thesis-upload-container {
-  padding: 20px 0;
-}
-h2 {
-  font-size: 18px;
-  color: #1e3c72;
-  margin-bottom: 20px;
-}
-.upload-card {
-  margin-bottom: 20px;
-}
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+.thesis-upload-container { padding: 20px 0; }
+.tip-text { margin-left: 10px; color: #909399; font-size: 12px; }
 </style>

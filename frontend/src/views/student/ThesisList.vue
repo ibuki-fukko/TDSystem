@@ -3,108 +3,98 @@
     <h2>我的论文列表</h2>
     
     <el-card>
-      <el-table :data="thesisList" style="width: 100%">
-        <el-table-column prop="title" label="论文题目" />
-        <el-table-column prop="type" label="类型" width="120">
-          <template #default="scope">
-            <el-tag>{{ getTypeName(scope.row.type) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="version" label="版本" width="80" />
-        <el-table-column prop="submitTime" label="提交时间" width="180" />
+      <div style="margin-bottom: 20px;">
+        <span>选择批次：</span>
+        <el-select v-model="selectedBatchId" placeholder="请选择批次" @change="loadData">
+          <el-option v-for="b in batches" :key="b.id" :label="b.name" :value="b.id" />
+        </el-select>
+      </div>
+
+      <el-table :data="thesisList" style="width: 100%" v-loading="loading">
+        <el-table-column prop="typeLabel" label="类型" width="120" />
+        <el-table-column prop="fileName" label="文件名" show-overflow-tooltip />
         <el-table-column prop="status" label="状态" width="100">
-          <template #default="scope">
-            <el-tag type="success">已提交</el-tag>
+          <template #default>
+            <el-tag type="success">已上传</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="250">
+        <el-table-column label="操作" width="150">
           <template #default="scope">
-            <el-button size="small" @click="handlePreview(scope.row)">在线预览</el-button>
-            <el-button size="small" type="primary" plain @click="handleDownload(scope.row)">下载</el-button>
-            <el-button size="small" type="warning" plain @click="handleUpdate(scope.row)">替换/补充</el-button>
+            <el-button size="small" type="primary" @click="handleDownload(scope.row)">下载</el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-card>
-
-    <!-- 预览对话框 -->
-    <el-dialog v-model="previewVisible" title="论文预览" width="80%">
-      <div class="preview-content">
-        <p>此处为 PDF 预览区域（集成 PDF.js）</p>
-        <p>当前预览文件：{{ currentThesis?.title }}</p>
-      </div>
-    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { getBatches, getMyApplication } from '../../api/student'
 
-const router = useRouter()
-const previewVisible = ref(false)
-const currentThesis = ref(null)
+const loading = ref(false)
+const batches = ref([])
+const selectedBatchId = ref('')
+const thesisList = ref([])
 
-const thesisList = ref([
-  {
-    id: 1,
-    title: '基于深度学习的图像识别系统研究与实现',
-    type: 'blind',
-    version: 'v1.0',
-    submitTime: '2026-03-15 14:30:00',
-    status: 'submitted'
-  },
-  {
-    id: 2,
-    title: '基于深度学习的图像识别系统研究与实现',
-    type: 'check',
-    version: 'v1.0',
-    submitTime: '2026-03-20 09:15:00',
-    status: 'submitted'
+// 加载批次列表
+const loadBatches = async () => {
+  try {
+    const data = await getBatches()
+    batches.value = data
+    if (data.length > 0) {
+      selectedBatchId.value = data[0].id // 默认选中第一个
+      loadData()
+    }
+  } catch (error) {
+    console.error(error)
   }
-])
-
-const getTypeName = (type) => {
-  const map = {
-    'blind': '盲审论文',
-    'check': '查重论文',
-    'final': '终版论文'
-  }
-  return map[type] || type
 }
 
-const handlePreview = (row) => {
-  currentThesis.value = row
-  previewVisible.value = true
+// 加载指定批次的论文信息
+const loadData = async () => {
+  if (!selectedBatchId.value) return
+  loading.value = true
+  thesisList.value = []
+  
+  try {
+    const data = await getMyApplication(selectedBatchId.value)
+    if (data) {
+      // 接口没有直接返回文件列表，而是作为字段返回，需要手动转换
+      const list = []
+      if (data.blindFilePath) {
+        list.push({ typeLabel: '盲审论文', fileName: data.blindFilePath, type: 'blind' })
+      }
+      if (data.plagiarismFilePath) {
+        list.push({ typeLabel: '查重论文', fileName: data.plagiarismFilePath, type: 'plagiarism' })
+      }
+      if (data.finalFilePath) {
+        list.push({ typeLabel: '终版论文', fileName: data.finalFilePath, type: 'final' })
+      }
+      thesisList.value = list
+    }
+  } catch (error) {
+    // 404 可能表示未申请，忽略错误
+  } finally {
+    loading.value = false
+  }
 }
 
 const handleDownload = (row) => {
-  ElMessage.success(`开始下载：${row.title}`)
+  // 根据 FileController 接口构造下载地址
+  // GET /files/blind?batchId=...&fileName=...
+  const baseUrl = `/api/files/${row.type}`
+  const url = `${baseUrl}?batchId=${selectedBatchId.value}&fileName=${encodeURIComponent(row.fileName)}`
+  window.open(url, '_blank')
 }
 
-const handleUpdate = (row) => {
-  // 跳转到上传页面
-  router.push('/student/thesis/upload')
-}
+onMounted(() => {
+  loadBatches()
+})
 </script>
 
 <style scoped>
-.thesis-list-container {
-  padding: 20px 0;
-}
-h2 {
-  font-size: 18px;
-  color: #1e3c72;
-  margin-bottom: 20px;
-}
-.preview-content {
-  height: 400px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background-color: #f5f7fa;
-  color: #909399;
-}
+.thesis-list-container { padding: 20px 0; }
+h2 { font-size: 18px; color: #1e3c72; margin-bottom: 20px; }
 </style>

@@ -1,6 +1,6 @@
 <template>
   <div class="application-form-container">
-    <h2>{{ isViewMode ? '查看申请' : isEditMode ? '编辑申请' : '答辩申请' }}</h2>
+    <h2>答辩申请</h2>
     <el-card>
       <el-form
         ref="formRef"
@@ -9,78 +9,40 @@
         label-width="120px"
         style="max-width: 800px"
       >
-        <el-form-item label="批次信息">
-          <el-tag type="info">批次ID: {{ batchId }}</el-tag>
+        <el-form-item label="批次ID">
+          <el-tag type="info">{{ batchId }}</el-tag>
         </el-form-item>
 
         <el-form-item label="学生姓名">
-          <el-input v-model="formData.studentName" disabled />
+          <el-input v-model="userInfo.realname" disabled />
         </el-form-item>
 
         <el-form-item label="学生学号">
-          <el-input v-model="formData.studentId" disabled />
+          <el-input v-model="userInfo.username" disabled />
         </el-form-item>
 
-        <el-form-item label="论文标题" prop="thesisTitle">
-          <el-input
-            v-model="formData.thesisTitle"
-            placeholder="请输入论文中文标题"
-            :disabled="isViewMode"
-          />
+        <el-form-item label="论文题目" prop="thesisTitle">
+          <el-input v-model="formData.thesisTitle" placeholder="请输入论文题目" />
         </el-form-item>
 
-        <el-form-item label="论文英文标题" prop="englishTitle">
-          <el-input
-            v-model="formData.englishTitle"
-            placeholder="请输入论文英文标题（选填）"
-            :disabled="isViewMode"
-          />
+        <el-form-item label="是否重修" prop="isRetake">
+          <el-switch v-model="formData.isRetake" active-text="是" inactive-text="否" />
         </el-form-item>
 
-        <el-form-item label="关键词" prop="keywords">
-          <el-input
-            v-model="formData.keywords"
-            placeholder="请输入关键词，多个关键词用逗号分隔"
-            :disabled="isViewMode"
-          />
+        <!-- 接口文档未提供获取导师列表接口，改为手动输入 -->
+        <el-form-item label="导师工号" prop="advisorId">
+          <el-input v-model="formData.advisorId" placeholder="请输入导师工号" />
         </el-form-item>
 
-        <el-form-item label="摘要" prop="abstract">
-          <el-input
-            v-model="formData.abstract"
-            type="textarea"
-            :rows="6"
-            placeholder="请输入论文摘要"
-            :disabled="isViewMode"
-          />
-        </el-form-item>
-
-        <el-form-item label="指导教师" prop="supervisor">
-          <el-select
-            v-model="formData.supervisor"
-            placeholder="请选择指导教师"
-            style="width: 100%"
-            :disabled="isViewMode"
-          >
-            <el-option
-              v-for="teacher in teacherList"
-              :key="teacher.id"
-              :label="teacher.name"
-              :value="teacher.id"
-            />
-          </el-select>
+        <el-form-item label="导师姓名" prop="advisorName">
+          <el-input v-model="formData.advisorName" placeholder="请输入导师姓名" />
         </el-form-item>
 
         <el-form-item>
-          <el-button 
-            v-if="!isViewMode" 
-            type="primary" 
-            @click="handleSubmit" 
-            :loading="submitting"
-          >
-            {{ isEditMode ? '更新申请' : '提交申请' }}
+          <el-button type="primary" @click="handleSubmit" :loading="submitting">
+            提交申请
           </el-button>
-          <el-button @click="handleCancel">{{ isViewMode ? '返回' : '取消' }}</el-button>
+          <el-button @click="handleCancel">取消</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -88,54 +50,42 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { submitApplication, getUserProfile } from '../../api/student'
 
 const router = useRouter()
 const route = useRoute()
 const formRef = ref(null)
 const submitting = ref(false)
+const batchId = ref(route.query.batchId ? Number(route.query.batchId) : '')
 
-const batchId = ref(route.query.batchId || '')
-const applicationId = ref(route.query.id || '')
-const mode = ref(route.query.mode || 'create') // 'create', 'view', or 'edit'
-const isViewMode = computed(() => mode.value === 'view')
-const isEditMode = computed(() => mode.value === 'edit')
-const isCreateMode = computed(() => mode.value === 'create')
-
-const teacherList = ref([
-  { id: 1, name: '张教授' },
-  { id: 2, name: '李教授' },
-  { id: 3, name: '王教授' },
-  { id: 4, name: '赵副教授' },
-  { id: 5, name: '陈副教授' }
-])
+const userInfo = ref({
+  realname: '',
+  username: ''
+})
 
 const formData = reactive({
-  studentName: 'Student 1',
-  studentId: '2024001',
   thesisTitle: '',
-  englishTitle: '',
-  keywords: '',
-  abstract: '',
-  supervisor: ''
+  isRetake: false,
+  advisorId: '',
+  advisorName: ''
 })
 
 const rules = {
-  thesisTitle: [
-    { required: true, message: '请输入论文标题', trigger: 'blur' }
-  ],
-  keywords: [
-    { required: true, message: '请输入关键词', trigger: 'blur' }
-  ],
-  abstract: [
-    { required: true, message: '请输入论文摘要', trigger: 'blur' },
-    { min: 50, message: '摘要至少需要50个字符', trigger: 'blur' }
-  ],
-  supervisor: [
-    { required: true, message: '请选择指导教师', trigger: 'change' }
-  ]
+  thesisTitle: [{ required: true, message: '请输入论文题目', trigger: 'blur' }],
+  advisorId: [{ required: true, message: '请输入导师工号', trigger: 'blur' }],
+  advisorName: [{ required: true, message: '请输入导师姓名', trigger: 'blur' }]
+}
+
+const loadUserInfo = async () => {
+  try {
+    const data = await getUserProfile()
+    userInfo.value = data
+  } catch (error) {
+    console.error('获取用户信息失败', error)
+  }
 }
 
 const handleSubmit = async () => {
@@ -143,98 +93,49 @@ const handleSubmit = async () => {
   
   try {
     await formRef.value.validate()
-    
     submitting.value = true
     
-    // 模拟API调用
-    setTimeout(() => {
-      submitting.value = false
-      if (isEditMode.value) {
-        ElMessage.success('申请更新成功！')
-      } else {
-        ElMessage.success('申请提交成功！')
-      }
+    // 构造接口所需的 JSON Body
+    const payload = {
+      batchId: batchId.value,
+      thesisTitle: formData.thesisTitle,
+      isRetake: formData.isRetake,
+      advisorId: formData.advisorId,
+      advisorName: formData.advisorName
+      // studentId 和 studentName 后端可从 token 解析，不传或选传
+    }
 
-      router.push('/student/my-applications')
-    }, 1500)
+    await submitApplication(payload)
+    ElMessage.success('申请提交成功')
+    router.push('/student/my-applications')
   } catch (error) {
-    console.error('表单验证失败:', error)
+    console.error(error)
+  } finally {
+    submitting.value = false
   }
 }
 
 const handleCancel = () => {
-  if (isViewMode.value || isEditMode.value) {
-    router.push('/student/my-applications')
-  } else {
-    router.push('/student/batch')
-  }
+  router.push('/student/batch')
 }
 
 onMounted(() => {
-  if (isCreateMode.value && !batchId.value) {
-    ElMessage.warning('未指定批次ID，请从批次列表选择')
+  if (!batchId.value) {
+    ElMessage.warning('未指定批次ID')
     router.push('/student/batch')
     return
   }
-
-  if ((isViewMode.value || isEditMode.value) && applicationId.value) {
-    loadApplicationData(applicationId.value)
-  }
+  loadUserInfo()
 })
-
-// 加载申请数据（模拟API调用）
-const loadApplicationData = (id) => {
-  // 模拟从后端获取数据
-  const mockData = {
-    1001: {
-      batchId: '2026-spring',
-      studentName: 'Student 1',
-      studentId: '2024001',
-      thesisTitle: '基于深度学习的图像识别系统研究与实现',
-      englishTitle: 'Research and Implementation of Image Recognition System Based on Deep Learning',
-      keywords: '深度学习,图像识别,卷积神经网络,计算机视觉',
-      abstract: '本文研究了基于深度学习的图像识别系统，采用卷积神经网络架构，实现了高精度的图像分类与识别功能。系统能够自动提取图像特征，通过多层神经网络进行特征学习和分类决策。实验结果表明，该系统在多个标准数据集上取得了优异的性能表现。',
-      supervisor: 1
-    },
-    1002: {
-      batchId: '2025-autumn',
-      studentName: 'Student 1',
-      studentId: '2024001',
-      thesisTitle: '分布式系统中的一致性协议研究',
-      englishTitle: 'Research on Consistency Protocols in Distributed Systems',
-      keywords: '分布式系统,一致性协议,Raft算法,共识机制',
-      abstract: '本文深入研究了分布式系统中的一致性协议，重点分析了Raft共识算法的原理和实现。通过理论分析和实验验证，证明了该协议在保证数据一致性方面的有效性。本研究为构建高可用的分布式系统提供了理论基础和实践指导。',
-      supervisor: 2
-    }
-  }
-  
-  // Convert id to number for lookup
-  const data = mockData[Number(id)]
-  if (data) {
-    batchId.value = data.batchId
-    formData.studentName = data.studentName
-    formData.studentId = data.studentId
-    formData.thesisTitle = data.thesisTitle
-    formData.englishTitle = data.englishTitle
-    formData.keywords = data.keywords
-    formData.abstract = data.abstract
-    formData.supervisor = data.supervisor
-  }
-}
 </script>
 
 <style scoped>
 .application-form-container {
   padding: 20px 0;
 }
-
 h2 {
   font-size: 18px;
   color: #1e3c72;
   margin-bottom: 20px;
-}
-
-.el-form {
-  padding: 20px;
 }
 </style>

@@ -1,57 +1,33 @@
 <template>
   <div class="my-applications-container">
-    <h2>我的申请</h2>
+    <h2>我的申请记录</h2>
     <el-card>
-      <el-table :data="applicationList" style="width: 100%">
-        <el-table-column prop="id" label="申请ID" width="80" />
-        <el-table-column prop="batchName" label="批次名称" width="150" show-overflow-tooltip />
-        <el-table-column prop="thesisTitle" label="论文标题" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="supervisor" label="指导教师" width="100" show-overflow-tooltip />
-        <el-table-column prop="submissionTime" label="提交时间" width="160" />
-        <el-table-column prop="status" label="状态" width="100">
+      <el-table :data="applicationList" style="width: 100%" v-loading="loading">
+        <el-table-column prop="batchId" label="批次ID" width="100" />
+        <el-table-column prop="thesisTitle" label="论文题目" show-overflow-tooltip />
+        <el-table-column prop="advisorName" label="导师" width="100" />
+        <el-table-column label="是否重修" width="100">
           <template #default="scope">
-            <el-tag
-              :type="getStatusType(scope.row.status)"
-            >
-              {{ getStatusLabel(scope.row.status) }}
-            </el-tag>
+            {{ scope.row.isRetake ? '是' : '否' }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="260" fixed="right">
+        <!-- 接口返回数据中没有明确的 status 字段，根据返回的文件字段推断进度 -->
+        <el-table-column label="当前状态" width="150">
           <template #default="scope">
-            <div class="action-buttons">
-              <el-button
-                type="primary"
-                size="small"
-                @click="handleView(scope.row)"
-              >
-                查看
-              </el-button>
-              <el-button
-                v-if="scope.row.status === 'pending'"
-                type="warning"
-                size="small"
-                @click="handleEdit(scope.row)"
-              >
-                编辑
-              </el-button>
-              <el-button
-                v-if="scope.row.status === 'pending'"
-                type="danger"
-                size="small"
-                @click="handleCancel(scope.row)"
-              >
-                取消报名
-              </el-button>
-            </div>
+            <el-tag v-if="scope.row.finalFilePath" type="success">终版已提交</el-tag>
+            <el-tag v-else-if="scope.row.blindFilePath" type="warning">盲审中</el-tag>
+            <el-tag v-else type="info">已报名</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="180">
+          <template #default="scope">
+            <el-button type="primary" link @click="handleUpload(scope.row)">上传论文</el-button>
           </template>
         </el-table-column>
       </el-table>
-
-      <div v-if="applicationList.length === 0" class="empty-state">
-        <el-empty description="暂无申请记录">
-          <el-button type="primary" @click="handleGoToBatchList">去报名</el-button>
-        </el-empty>
+      
+      <div v-if="!loading && applicationList.length === 0" class="empty-state">
+        <el-empty description="暂无申请记录" />
       </div>
     </el-card>
   </div>
@@ -60,92 +36,40 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { getBatches, getMyApplication } from '../../api/student'
 
 const router = useRouter()
+const loading = ref(false)
+const applicationList = ref([])
 
-const applicationList = ref([
-  {
-    id: 1001,
-    batchName: '2026年春季答辩批次',
-    thesisTitle: '基于深度学习的图像识别系统研究与实现',
-    supervisor: '张教授',
-    submissionTime: '2026-01-25 14:30:00',
-    status: 'pending'
-  },
-  {
-    id: 1002,
-    batchName: '2025年秋季答辩批次',
-    thesisTitle: '分布式系统中的一致性协议研究',
-    supervisor: '李教授',
-    submissionTime: '2025-09-15 10:20:00',
-    status: 'approved'
-  }
-])
-
-const getStatusType = (status) => {
-  const statusMap = {
-    pending: 'warning',
-    approved: 'success',
-    rejected: 'danger',
-    cancelled: 'info'
-  }
-  return statusMap[status] || 'info'
-}
-
-const getStatusLabel = (status) => {
-  const statusMap = {
-    pending: '待审核',
-    approved: '已通过',
-    rejected: '已驳回',
-    cancelled: '已取消'
-  }
-  return statusMap[status] || '未知'
-}
-
-const handleView = (application) => {
-  router.push(`/student/application?id=${application.id}&mode=view`)
-}
-
-const handleEdit = (application) => {
-  router.push(`/student/application?id=${application.id}&mode=edit`)
-}
-
-const handleCancel = async (application) => {
+const loadData = async () => {
+  loading.value = true
+  applicationList.value = []
   try {
-    await ElMessageBox.confirm(
-      '你确定要取消本次申请吗?',
-      '确认取消',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
+    // 1. 获取所有批次
+    const batches = await getBatches()
     
-    // 模拟API调用
-    await new Promise(resolve => setTimeout(resolve, 500))
+    // 2. 并发查询每个批次的申请详情
+    const promises = batches.map(batch => getMyApplication(batch.id).catch(() => null))
+    const results = await Promise.all(promises)
     
-    // 更新申请状态
-    const app = applicationList.value.find(item => item.id === application.id)
-    if (app) {
-      app.status = 'cancelled'
-    }
-    ElMessage.success('申请已取消')
+    // 3. 过滤掉 null (未申请的批次后端可能报错或返回null)
+    applicationList.value = results.filter(item => item !== null)
+    
   } catch (error) {
-    // 用户点击取消，不做任何操作
+    console.error(error)
+  } finally {
+    loading.value = false
   }
 }
 
-const handleGoToBatchList = () => {
-  router.push('/student/batch')
+const handleUpload = (row) => {
+  // 跳转到上传页，带上批次ID
+  router.push(`/student/thesis/upload?batchId=${row.batchId}`)
 }
 
 onMounted(() => {
-  // 模拟从后端获取申请列表
-  setTimeout(() => {
-    // 实际项目中这里会调用API获取真实数据
-  }, 500)
+  loadData()
 })
 </script>
 
@@ -153,21 +77,9 @@ onMounted(() => {
 .my-applications-container {
   padding: 20px 0;
 }
-
 h2 {
   font-size: 18px;
   color: #1e3c72;
   margin-bottom: 20px;
-}
-
-.empty-state {
-  padding: 40px 0;
-  text-align: center;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 5px;
-  flex-wrap: nowrap;
 }
 </style>
